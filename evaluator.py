@@ -33,19 +33,21 @@ class LinearEvaluator(Evaluator):
 
 
 class LLMEvaluator:
-    def __init__(self, provider, tasks):
+    def __init__(self, provider, tasks, verbose=True):
         self.max_tokens = 32
         self._llm_call = provider.llm_call
         self.tasks = tasks
         # random.seed(3424)
         random.shuffle(self.tasks)
+        self.verbose = verbose
     
     def evaluate(self, instruction: str, num_examples=30, remove_emb_instruction=True):
         scores = list()
         responses = list()
         for task in tqdm(self.tasks[:num_examples], disable=not self.verbose):
             tast_input = task["input"]
-            messages = [dict(role="user", content="\n\n".join([instruction, tast_input]))]
+            messages = [dict(role="system", content=instruction), dict(role="user", content=tast_input)]
+            # messages = [dict(role="user", content="\n\n".join([instruction, tast_input]))]
             response = self._llm_call(messages, self.max_tokens)
             if task["target"].lower() in response.replace(",", " ").replace(".", " ").strip().lower().split():
                 scores.append(1.)

@@ -2,12 +2,12 @@ import json
 
 
 def get_bbh_causal_judgement():
-    return json.load(open("data/causal_judgement.json"))["examples"]
+    return json.load(open("data/tasks/causal_judgement.json"))["examples"]
 
 
 def get_boolq():
     tasks = list()
-    rows = [json.loads(row.strip()) for row in open("data/boolq_dev.jsonl").readlines()]
+    rows = [json.loads(row.strip()) for row in open("data/tasks/boolq_dev.jsonl").readlines()]
     for row in rows:
         input = f"Question: {row['question']}?"
         input += f"\nPassage: {row['passage']}"
