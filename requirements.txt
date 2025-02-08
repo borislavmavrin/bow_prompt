@@ -2,3 +2,5 @@ scikit-learn
 python-dotenv
 huggingface_hub
 ollama
+statsmodels
+nltk

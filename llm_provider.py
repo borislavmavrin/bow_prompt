@@ -31,5 +31,5 @@ class Ollama(LLMProvider):
         self.model_id = model_id
 
     def llm_call(self, messages, max_tokens):
-        response = chat(model=self.model_id, messages=messages)
+        response = chat(model=self.model_id, messages=messages, options={"temperature": 0., "num_predict": max_tokens})
         return response.message.content
