@@ -105,7 +105,7 @@ class Learner:
         if self.results_path is not None:
             self.results_path.mkdir(parents=True, exist_ok=True)
             with open(self.results_path / "best_scores.csv", "a") as f:
-                f.write(f"{best_score},{best_instruction}")
+                f.write(f"{best_score},{best_instruction}\n")
 
 
 class LearnerUCB(Learner):
