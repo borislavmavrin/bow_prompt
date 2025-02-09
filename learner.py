@@ -153,6 +153,7 @@ class LearnerUCB(Learner):
         if non_nan_idx.size != 0:
             if self.verbose:
                 print(f"R^2: {results.rsquared}")
+                self.r2 = results.rsquared
                 print("updating weights")
             self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
 
@@ -175,5 +176,6 @@ class LearnerRidge(Learner):
         if non_nan_idx.size != 0:
             if self.verbose:
                 print(f"R^2: {rsquared} | alpha: {alpha} | best_cv_score: {best_cv_score}")
+                self.r2 = rsquared
                 print("updating weights")
             self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
