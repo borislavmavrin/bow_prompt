@@ -16,8 +16,8 @@ NUM_EXAMPLES = 50
 # login(os.getenv("HF_TOKEN"))
 # model_id="meta-llama/Llama-3.1-8B-Instruct"
 # model_id = "llama3.2:1b"
-model_id = "qwen2.5:0.5b"
-# model_id = "qwen2.5:1.5b"
+# model_id = "qwen2.5:0.5b"
+model_id = "qwen2.5:1.5b"
 # hf_inf = HFInf(model_id, os.getenv("HF_TOKEN"), 120)
 results_path = f"results/{model_id}"
 assert not Path(results_path).exists()

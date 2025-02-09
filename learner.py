@@ -82,7 +82,10 @@ class Learner:
             num_pos_weights = np.sum(self.thetas_hat > 0.)
             num_nan_weights = np.argwhere(np.isnan(self.thetas_hat)).flatten().size
             if self.verbose:
-                print(f"\nstep: {step}| best score: {best_score} | worst score: {worst_score} | num pos weights: {num_pos_weights} | num neg weights: {np.sum(self.thetas_hat <= 0.)} | num nan weights: {num_nan_weights}")
+                max_score = -1.
+                if self.scores:
+                    max_score = np.max(self.scores)
+                print(f"\nstep: {step}| max obs score: {max_score} | best score: {best_score} | worst score: {worst_score} | num pos weights: {num_pos_weights} | num neg weights: {np.sum(self.thetas_hat <= 0.)} | num nan weights: {num_nan_weights}")
                 print(f"\n{len(best_instruction.split())} | {best_instruction}")
             self.add(words, score)
             self.update_weights()
