@@ -4,12 +4,13 @@ from tqdm import tqdm
 import random
 import numpy as np
 from abc import ABC, abstractmethod
+from few_shot import create_few_shot_examples
 
 
 class Evaluator(ABC):
     @classmethod
     @abstractmethod
-    def evaluate(instruction: str) -> float:
+    def evaluate(instruction: str) -> tuple[float, list[str]]:
         pass
 
 
@@ -32,12 +33,13 @@ class LinearEvaluator(Evaluator):
         return 0., [""]
 
 
-class LLMEvaluator:
-    def __init__(self, provider, tasks, verbose=True):
+class LLMEvaluator(Evaluator):
+    def __init__(self, provider, tasks, verbose=True, seed=None):
         self.max_tokens = 32
         self._llm_call = provider.llm_call
         self.tasks = tasks
-        # random.seed(3424)
+        if seed is not None:
+            random.seed(seed)
         random.shuffle(self.tasks)
         self.verbose = verbose
     
@@ -48,6 +50,32 @@ class LLMEvaluator:
             tast_input = task["input"]
             messages = [dict(role="system", content=instruction), dict(role="user", content=tast_input)]
             # messages = [dict(role="user", content="\n\n".join([instruction, tast_input]))]
+            response = self._llm_call(messages, self.max_tokens)
+            if task["target"].lower() in response.replace(",", " ").replace(".", " ").strip().lower().split():
+                scores.append(1.)
+            else:
+                scores.append(0.)
+            responses.append(response)
+        return float(np.mean(scores)), responses
+
+
+class LLMEvaluatorFS(Evaluator):
+    def __init__(self, provider, tasks, few_shot_tasks, verbose=True, seed=None):
+        self.max_tokens = 32
+        self._llm_call = provider.llm_call
+        self.tasks = tasks
+        if seed is not None:
+            random.seed(seed)
+        random.shuffle(self.tasks)
+        self.verbose = verbose
+        self.few_shot_examples = create_few_shot_examples(few_shot_tasks)
+    
+    def evaluate(self, instruction: str, num_examples=30, remove_emb_instruction=True):
+        scores = list()
+        responses = list()
+        for task in tqdm(self.tasks[:num_examples], disable=not self.verbose):
+            messages = self.few_shot_examples
+            messages.extend([dict(role="system", content=instruction), dict(role="user", content=task["input"])])
             response = self._llm_call(messages, self.max_tokens)
             if task["target"].lower() in response.replace(",", " ").replace(".", " ").strip().lower().split():
                 scores.append(1.)
