@@ -29,7 +29,7 @@ class LinearEvaluator(Evaluator):
         if instruction != "":
             idxs = np.array([int(word) for word in instruction.split(" ")])
             return max(float(self.thetas[idxs].sum()), 0.)
-        return 0.
+        return 0., [""]
 
 
 class LLMEvaluator:
@@ -54,4 +54,4 @@ class LLMEvaluator:
             else:
                 scores.append(0.)
             responses.append(response)
-        return float(np.mean(scores))
+        return float(np.mean(scores)), responses

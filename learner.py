@@ -4,12 +4,13 @@ from sklearn.linear_model import RidgeCV
 import statsmodels.api as sm
 from tqdm import tqdm
 from pathlib import Path
+import json
 
 
 class Learner:
     def __init__(self, evaluator: Evaluator, word_list, verbose=True, topk=30, results_path=None):
         self.evaluator = evaluator
-        self.words = list()
+        self.instructions = list()
         self.scores = list()
         self.sample_space = np.arange(len(word_list))
         self.thetas_hat = np.zeros(len(word_list))
@@ -19,7 +20,7 @@ class Learner:
         self.results_path = Path(results_path) if results_path is not None else None
     
     def add(self, words, score):
-        self.words.append(words)
+        self.instructions.append(words)
         self.scores.append(score)
     
     def choose_idxs(self, num_idxs, method='uniform'):
@@ -53,7 +54,7 @@ class Learner:
         return np.stack(X)
     
     def update_weights(self):
-        X = self.vectorize(self.words)
+        X = self.vectorize(self.instructions)
         y = np.array(self.scores)
         X = sm.add_constant(X)
         model = sm.OLS(y, X)
@@ -74,7 +75,7 @@ class Learner:
                 idxs = self.choose_idxs(num_idxs_to_choose, method='proportional')
             words = [self.word_list[i] for i in idxs]
             instruction = " ".join(words)
-            score = self.evaluator.evaluate(instruction)
+            score, responses = self.evaluator.evaluate(instruction)
             
             # track best score
             worst_score, _ = self.evaluate_worst_idxs()
@@ -90,7 +91,7 @@ class Learner:
             self.add(words, score)
             self.update_weights()
 
-            self.save_results(best_score, worst_score, best_instruction)
+            self.save_results(best_score, worst_score, best_instruction, responses)
     
     def evaluate_best_idxs(self):
         range_idxs = np.arange(len(self.sample_space))
@@ -103,7 +104,7 @@ class Learner:
         if self.verbose:
             print(f"\n{pos_thetas_idx.size} and {sorted_thetas_idx.size}, {best_idxs_len} -> {best_idxs.size}")
         instruction = " ".join([self.word_list[i] for i in best_idxs])
-        max_reward = self.evaluator.evaluate(instruction)
+        max_reward, _ = self.evaluator.evaluate(instruction)
         return max_reward, instruction
     
     def evaluate_worst_idxs(self):
@@ -112,21 +113,30 @@ class Learner:
         # pos_thetas_idx = range_idxs[(self.thetas_hat > 0.).flatten()]
         worst_idxs = np.argsort(self.thetas_hat).flatten()[:self.topk]
         instruction = " ".join([self.word_list[i] for i in worst_idxs])
-        min_reward = self.evaluator.evaluate(instruction)
+        min_reward, _ = self.evaluator.evaluate(instruction)
         return min_reward, instruction
     
-    def save_results(self, best_score, worst_score, best_instruction):
+    def save_results(self, best_score, worst_score, best_instruction, responses):
         if self.results_path is not None:
             self.results_path.mkdir(parents=True, exist_ok=True)
             with open(self.results_path / "best_scores.csv", "a") as f:
                 f.write(f"{best_score},{worst_score},{best_instruction}\n")
-            with open(self.results_path / "word_weights.csv", "w") as f:
+            with open(self.results_path / "current_word_weights.csv", "w") as f:
                 word_weights = [",".join([word, str(weight)]) + "\n" for word, weight in zip(self.word_list, self.thetas_hat)]
                 f.writelines(word_weights)
+            with open(self.results_path / "all_word_weights.csv", "a") as f:
+                weights = ",".join([str(weight) + "\n" for weight in self.thetas_hat]) + "\n"
+                f.write(weights)
+            with open(self.results_path / "scores_instructionss.csv", "w") as f:
+                scores_instructions = [",".join([str(score), " ".join(instruction)]) + "\n" for score, instruction in zip(self.scores, self.instructions)]
+                f.writelines(scores_instructions)
+            with open(self.results_path / "current_responses.json", "w") as f:
+                json.dump(responses, f, indent=4)
+
 
 class LearnerUCB(Learner):
     def update_weights(self):
-        X = self.vectorize(self.words)
+        X = self.vectorize(self.instructions)
         y = np.array(self.scores)
         X = sm.add_constant(X)
         model = sm.OLS(y, X)
@@ -143,7 +153,7 @@ class LearnerUCB(Learner):
 
 class LearnerRidge(Learner):
     def update_weights(self):
-        X = self.vectorize(self.words)
+        X = self.vectorize(self.instructions)
         y = np.array(self.scores)
         try:
             results = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=5).fit(X, y)
