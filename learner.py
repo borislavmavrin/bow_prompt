@@ -125,7 +125,7 @@ class Learner:
                 word_weights = [",".join([word, str(weight)]) + "\n" for word, weight in zip(self.word_list, self.thetas_hat)]
                 f.writelines(word_weights)
             with open(self.results_path / "all_word_weights.csv", "a") as f:
-                weights = ",".join([str(weight) + "\n" for weight in self.thetas_hat]) + "\n"
+                weights = ",".join([str(weight) for weight in self.thetas_hat]) + "\n"
                 f.write(weights)
             with open(self.results_path / "scores_instructionss.csv", "w") as f:
                 scores_instructions = [",".join([str(score), " ".join(instruction)]) + "\n" for score, instruction in zip(self.scores, self.instructions)]
