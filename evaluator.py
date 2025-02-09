@@ -4,7 +4,7 @@ from tqdm import tqdm
 import random
 import numpy as np
 from abc import ABC, abstractmethod
-from few_shot import create_few_shot_examples, create_few_shot_examples_simple
+from few_shot import create_few_shot_examples
 
 
 class Evaluator(ABC):
@@ -68,7 +68,7 @@ class LLMEvaluatorFS(Evaluator):
             random.seed(seed)
         random.shuffle(self.tasks)
         self.verbose = verbose
-        self.few_shot_examples = create_few_shot_examples_simple(few_shot_tasks)
+        self.few_shot_examples = create_few_shot_examples(few_shot_tasks)
     
     def evaluate(self, instruction: str, num_examples=30, remove_emb_instruction=True):
         scores = list()
