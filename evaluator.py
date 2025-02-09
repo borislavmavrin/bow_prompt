@@ -34,7 +34,7 @@ class LinearEvaluator(Evaluator):
 
 
 class LLMEvaluator(Evaluator):
-    def __init__(self, provider, tasks, verbose=True, seed=None):
+    def __init__(self, provider, tasks, verbose=True, seed=None, num_examples=30):
         self.max_tokens = 32
         self._llm_call = provider.llm_call
         self.tasks = tasks
@@ -42,11 +42,12 @@ class LLMEvaluator(Evaluator):
             random.seed(seed)
         random.shuffle(self.tasks)
         self.verbose = verbose
+        self.num_examples = num_examples
     
-    def evaluate(self, instruction: str, num_examples=30, remove_emb_instruction=True):
+    def evaluate(self, instruction: str, remove_emb_instruction=True):
         scores = list()
         responses = list()
-        for task in tqdm(self.tasks[:num_examples], disable=not self.verbose):
+        for task in tqdm(self.tasks[:self.num_examples], disable=not self.verbose):
             tast_input = task["input"]
             messages = [dict(role="system", content=instruction), dict(role="user", content=tast_input)]
             # messages = [dict(role="user", content="\n\n".join([instruction, tast_input]))]

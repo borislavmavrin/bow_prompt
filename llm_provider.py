@@ -2,6 +2,9 @@ from huggingface_hub import InferenceClient
 from abc import ABC, abstractmethod
 from ollama import chat
 from ollama import ChatResponse
+from dotenv import load_dotenv
+from huggingface_hub import login
+import os
 
 
 class LLMProvider(ABC):
@@ -12,7 +15,9 @@ class LLMProvider(ABC):
 
 
 class HFInf(LLMProvider):
-    def __init__(self, model_id, token, timeout):
+    def __init__(self, model_id, timeout):
+        load_dotenv()
+        login(os.getenv("HF_TOKEN"))
         self._client = InferenceClient(model_id, token=token, timeout=timeout)
     
     def llm_call(self, messages, max_tokens):
