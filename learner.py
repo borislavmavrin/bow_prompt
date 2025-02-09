@@ -1,6 +1,6 @@
 from evaluator import Evaluator
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import RidgeCV
 import statsmodels.api as sm
 from tqdm import tqdm
 from pathlib import Path
@@ -62,6 +62,7 @@ class Learner:
         non_nan_idx = np.argwhere(~np.isnan(thetas_hat)).flatten()
         if non_nan_idx.size != 0:
             if self.verbose:
+                print(f"R^2: {results.rsquared}")
                 print("updating weights")
             self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
 
@@ -76,16 +77,17 @@ class Learner:
             score = self.evaluator.evaluate(instruction)
             
             # track best score
+            worst_score, _ = self.evaluate_worst_idxs()
             best_score, best_instruction = self.evaluate_best_idxs()
             num_pos_weights = np.sum(self.thetas_hat > 0.)
             num_nan_weights = np.argwhere(np.isnan(self.thetas_hat)).flatten().size
             if self.verbose:
-                print(f"\nstep: {step}| best score: {best_score} | num pos weights: {num_pos_weights} | num neg weights: {np.sum(self.thetas_hat <= 0.)} | num nan weights: {num_nan_weights}")
+                print(f"\nstep: {step}| best score: {best_score} | worst score: {worst_score} | num pos weights: {num_pos_weights} | num neg weights: {np.sum(self.thetas_hat <= 0.)} | num nan weights: {num_nan_weights}")
                 print(f"\n{len(best_instruction.split())} | {best_instruction}")
             self.add(words, score)
             self.update_weights()
 
-            self.save_results(best_score, best_instruction)
+            self.save_results(best_score, worst_score, best_instruction)
     
     def evaluate_best_idxs(self):
         range_idxs = np.arange(len(self.sample_space))
@@ -101,12 +103,23 @@ class Learner:
         max_reward = self.evaluator.evaluate(instruction)
         return max_reward, instruction
     
-    def save_results(self, best_score, best_instruction):
+    def evaluate_worst_idxs(self):
+        range_idxs = np.arange(len(self.sample_space))
+        # assert best_idxs.size == self.thetas_hat.size
+        # pos_thetas_idx = range_idxs[(self.thetas_hat > 0.).flatten()]
+        worst_idxs = np.argsort(self.thetas_hat).flatten()[:self.topk]
+        instruction = " ".join([self.word_list[i] for i in worst_idxs])
+        min_reward = self.evaluator.evaluate(instruction)
+        return min_reward, instruction
+    
+    def save_results(self, best_score, worst_score, best_instruction):
         if self.results_path is not None:
             self.results_path.mkdir(parents=True, exist_ok=True)
             with open(self.results_path / "best_scores.csv", "a") as f:
-                f.write(f"{best_score},{best_instruction}\n")
-
+                f.write(f"{best_score},{worst_score},{best_instruction}\n")
+            with open(self.results_path / "word_weights.csv", "w") as f:
+                word_weights = [",".join([word, str(weight)]) + "\n" for word, weight in zip(self.word_list, self.thetas_hat)]
+                f.writelines(word_weights)
 
 class LearnerUCB(Learner):
     def update_weights(self):
@@ -120,5 +133,28 @@ class LearnerUCB(Learner):
         non_nan_idx = np.argwhere(~np.isnan(thetas_hat)).flatten()
         if non_nan_idx.size != 0:
             if self.verbose:
+                print(f"R^2: {results.rsquared}")
+                print("updating weights")
+            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
+
+
+class LearnerRidge(Learner):
+    def update_weights(self):
+        X = self.vectorize(self.words)
+        y = np.array(self.scores)
+        try:
+            results = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=5).fit(X, y)
+            rsquared = results.score(X, y)
+            alpha = results.alpha_
+            best_cv_score = results.best_score_
+        except Exception as e:
+            print(e)
+            return None
+        # update only non nans
+        thetas_hat = results.coef_
+        non_nan_idx = np.argwhere(~np.isnan(thetas_hat)).flatten()
+        if non_nan_idx.size != 0:
+            if self.verbose:
+                print(f"R^2: {rsquared} | alpha: {alpha} | best_cv_score: {best_cv_score}")
                 print("updating weights")
             self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
