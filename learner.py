@@ -63,11 +63,11 @@ class Learner:
         thetas_hat = results.params[-len(self.word_list):]
         non_nan_idx = np.argwhere(~np.isnan(thetas_hat)).flatten()
         if non_nan_idx.size != 0:
+            self.r2 = results.rsquared
+            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
             if self.verbose:
                 print(f"R^2: {results.rsquared}")
-                self.r2 = results.rsquared
                 print("updating weights")
-            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
 
     def run(self, steps, num_idxs_to_choose, epsilon=0.1):
         for step in tqdm(range(steps), disable=not self.verbose):
@@ -151,11 +151,11 @@ class LearnerUCB(Learner):
         thetas_hat = results.conf_int()[-len(self.word_list):, 1]
         non_nan_idx = np.argwhere(~np.isnan(thetas_hat)).flatten()
         if non_nan_idx.size != 0:
+            self.r2 = results.rsquared
+            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
             if self.verbose:
                 print(f"R^2: {results.rsquared}")
-                self.r2 = results.rsquared
                 print("updating weights")
-            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
 
 
 class LearnerRidge(Learner):
@@ -174,8 +174,8 @@ class LearnerRidge(Learner):
         thetas_hat = results.coef_
         non_nan_idx = np.argwhere(~np.isnan(thetas_hat)).flatten()
         if non_nan_idx.size != 0:
+            self.r2 = rsquared
+            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
             if self.verbose:
                 print(f"R^2: {rsquared} | alpha: {alpha} | best_cv_score: {best_cv_score}")
-                self.r2 = rsquared
                 print("updating weights")
-            self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]

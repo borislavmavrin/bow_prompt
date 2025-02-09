@@ -30,7 +30,7 @@ learner_class_map = {
     "ridge": LearnerRidge
 }
 for modle_id in ["qwen2.5:0.5b", "llama3.2:1b", "qwen2.5:1.5b"]:
-    for learner_class in learner_class_map.keys():
+    for learner_class in ["ridge"]:  # learner_class_map.keys():
         results_path = f"results/{learner_class}__{model_id.replace('/', '_')}"
         assert not Path(results_path).exists()
 
