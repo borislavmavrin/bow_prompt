@@ -18,7 +18,8 @@ class Learner:
         self.verbose = verbose
         self.topk = topk
         self.results_path = Path(results_path) if results_path is not None else None
-    
+        self.r2 = None
+
     def add(self, words, score):
         self.instructions.append(words)
         self.scores.append(score)
@@ -64,6 +65,7 @@ class Learner:
         if non_nan_idx.size != 0:
             if self.verbose:
                 print(f"R^2: {results.rsquared}")
+                self.r2 = results.rsquared
                 print("updating weights")
             self.thetas_hat[non_nan_idx] = thetas_hat[non_nan_idx]
 
@@ -132,6 +134,10 @@ class Learner:
                 f.writelines(scores_instructions)
             with open(self.results_path / "current_responses.json", "w") as f:
                 json.dump(responses, f, indent=4)
+            with open(self.results_path / "all_responses.jsonl", "a") as f:
+                f.write(json.dumps(responses) + "\n")
+            with open(self.results_path / "r2.csv", "a") as f:
+                f.write(str(self.r2) + "\n")
 
 
 class LearnerUCB(Learner):
